@@ -31,6 +31,8 @@ Requires Node 22.18+ (TypeScript runs natively, no build step).
 npm install        # dev tools only: typescript, @types/node
 npm test
 npm run samples    # renders test fixtures to samples/
+npm run dev        # landing page + card endpoint on http://localhost:3000
+HOLOCARD_FIXTURES=1 npm run dev   # same, with offline test profiles (ember-dev, volt-js, ...)
 ```
 
 Deploy to Vercel as is: `api/card.ts` is a standard `Request -> Response` handler. Set `GITHUB_TOKEN` (no scopes needed) to raise GitHub's rate limit from 60 to 5,000 requests an hour. Responses are cached at the edge for six hours.

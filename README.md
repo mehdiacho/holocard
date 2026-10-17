@@ -35,6 +35,6 @@ npm run dev        # landing page + card endpoint on http://localhost:3000
 HOLOCARD_FIXTURES=1 npm run dev   # same, with offline test profiles (ember-dev, volt-js, ...)
 ```
 
-Deploy to Vercel as is: `api/card.ts` is a standard `Request -> Response` handler. Set `GITHUB_TOKEN` (no scopes needed) to raise GitHub's rate limit from 60 to 5,000 requests an hour. Responses are cached at the edge for six hours.
+Deploy to Vercel as is: `functions/card.ts` (built to `/api/card` by `npm run build`) is a standard `Request -> Response` handler. Set `GITHUB_TOKEN` (no scopes needed) to raise GitHub's rate limit from 60 to 5,000 requests an hour. Responses are cached at the edge for six hours.
 
 Errors still return a card image, so an embed never shows a broken icon.

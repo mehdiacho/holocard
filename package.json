@@ -5,15 +5,19 @@
   "description": "Trading-card style GitHub profile cards you can embed in a README or share.",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "dev": "node scripts/dev.ts",
-    "samples": "node scripts/samples.ts"
+    "samples": "node scripts/samples.ts",
+    "build": "node scripts/build.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
     "typescript": "^5.6.3"
   }
 }

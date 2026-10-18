@@ -81,6 +81,8 @@ export function damageFor(stars: number): number {
 
 /** Repo names become move names: "my-cool_repo" -> "My Cool Repo". */
 export function moveName(repo: string): string {
+  // "user.github.io" is a profile site, so it reads better as "Personal Site".
+  if (/\.github\.io$/i.test(repo)) return "Personal Site";
   return repo
     .split(/[-_.\s]+/)
     .filter(Boolean)
@@ -102,10 +104,16 @@ export function emojify(text: string): string {
     .trim();
 }
 
+/** Drops leading bracketed notices like "[NOTE: moved to X]" or "[DEPRECATED]" that crowd out the real description. */
+export function tidyDescription(text: string): string {
+  const stripped = text.replace(/^(\s*\[[^\]]{0,200}\]\s*)+/, "").trim();
+  return stripped || text.trim();
+}
+
 function attackFrom(r: GitHubRepo): Attack {
   return {
     name: moveName(r.name),
-    text: emojify(r.description ?? "") || `${r.language ?? "Code"} project with ${safe(r.stargazers_count)} ${safe(r.stargazers_count) === 1 ? "star" : "stars"}.`,
+    text: tidyDescription(emojify(r.description ?? "")) || `${r.language ?? "Code"} project with ${safe(r.stargazers_count)} ${safe(r.stargazers_count) === 1 ? "star" : "stars"}.`,
     damage: damageFor(r.stargazers_count),
     cost: Math.min(3, 1 + Math.floor(Math.log10(safe(r.forks_count) + 1))),
     language: r.language,

@@ -159,3 +159,12 @@ test("GitHub emoji shortcodes don't show up as raw text", () => {
   assert.equal(emojify("Hi :not_a_real_code: there"), "Hi there");
   assert.equal(emojify("10:30:00 stays"), "10:30:00 stays");
 });
+
+test("profile-site repos and bracketed notices read cleanly", async () => {
+  const { moveName, tidyDescription } = await import("../src/stats.ts");
+  assert.equal(moveName("mehdiacho.github.io"), "Personal Site");
+  assert.equal(moveName("cool-tool"), "Cool Tool");
+  assert.equal(tidyDescription("[NOTE: MOVED TO X] Real description"), "Real description");
+  assert.equal(tidyDescription("[DEPRECATED]"), "[DEPRECATED]");
+  assert.equal(tidyDescription("Plain text"), "Plain text");
+});

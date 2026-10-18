@@ -88,10 +88,24 @@ export function moveName(repo: string): string {
     .join(" ") || repo;
 }
 
+const SHORTCODES: Record<string, string> = {
+  zap: "⚡", fire: "🔥", rocket: "🚀", sparkles: "✨", star: "⭐", heart: "❤️", tada: "🎉",
+  ghost: "👻", wave: "👋", computer: "💻", books: "📚", art: "🎨", bug: "🐛", package: "📦",
+  wrench: "🔧", sunglasses: "😎", seedling: "🌱", coffee: "☕", memo: "📝", eyes: "👀",
+};
+
+/** GitHub renders `:zap:` style shortcodes on the site; an SVG can't, so map the common ones and drop the rest. */
+export function emojify(text: string): string {
+  return text
+    .replace(/(^|\s):([a-z][a-z0-9_+-]*):(?=\s|$)/g, (_, pre: string, code: string) => pre + (SHORTCODES[code] ?? ""))
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function attackFrom(r: GitHubRepo): Attack {
   return {
     name: moveName(r.name),
-    text: (r.description ?? "").trim() || `${r.language ?? "Code"} project with ${safe(r.stargazers_count)} stars.`,
+    text: emojify(r.description ?? "") || `${r.language ?? "Code"} project with ${safe(r.stargazers_count)} ${safe(r.stargazers_count) === 1 ? "star" : "stars"}.`,
     damage: damageFor(r.stargazers_count),
     cost: Math.min(3, 1 + Math.floor(Math.log10(safe(r.forks_count) + 1))),
     language: r.language,
@@ -125,7 +139,7 @@ export function buildCard(user: GitHubUser, repos: GitHubRepo[], avatar: string 
     retreat: Math.min(4, Math.max(1, Math.ceil(repoCount / 25))),
     rarity: rarityFor(totalStars),
     totalStars,
-    flavor: (user.bio ?? "").trim() || `A wild developer with ${repoCount} public repositories.`,
+    flavor: emojify(user.bio ?? "") || `A wild developer with ${repoCount} public repositories.`,
     repoCount,
     followers: safe(user.followers),
   };

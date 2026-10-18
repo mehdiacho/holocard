@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LoadError, isValidLogin, loadAvatar, loadProfile } from "../src/github.ts";
+import { LoadError, isValidLogin, loadAvatar, loadProfile, mergeRepos } from "../src/github.ts";
 import { handleCard } from "../src/handler.ts";
 import { escapeXml, renderCard, wrap } from "../src/render.ts";
-import { buildCard, damageFor, hpFor, languageType, rankLanguages, rarityFor, resistanceOf, stageFor, weaknessOf } from "../src/stats.ts";
+import { buildCard, damageFor, emojify, hpFor, languageType, rankLanguages, rarityFor, resistanceOf, stageFor, weaknessOf } from "../src/stats.ts";
 import { FIXTURES } from "./fixtures.ts";
 
 const NOW = new Date("2026-10-16T00:00:00Z");
@@ -133,4 +133,29 @@ test("the endpoint always answers with an SVG, even on errors", async () => {
   });
   assert.equal(boom.status, 500);
   assert.doesNotMatch(await boom.text(), /network down/);
+});
+
+test("top-starred repos outside the recent page still reach the card", async () => {
+  const repo = (name: string, stars: number) =>
+    ({ name, description: null, language: "Go", stargazers_count: stars, forks_count: 0, size: 1, fork: false });
+  const user = { login: "big", id: 1, name: null, bio: null, avatar_url: "https://example.com/a.png", followers: 1, following: 0, public_repos: 300, created_at: "2015-01-01T00:00:00Z" };
+  const f = (async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes("/search/")) return Response.json({ items: [repo("famous", 5000), repo("recent", 3)] });
+    if (url.endsWith("/repos?per_page=100&type=owner&sort=pushed")) return Response.json([repo("recent", 3)]);
+    return Response.json(user);
+  }) as typeof fetch;
+  const { repos } = await loadProfile("big", undefined, f);
+  assert.deepEqual(repos.map((r) => r.name).sort(), ["famous", "recent"]);
+  assert.equal(mergeRepos([repo("A", 1)], [repo("a", 9)]).length, 1);
+
+  const searchDown = (async (input: string | URL | Request) =>
+    String(input).includes("/search/") ? new Response("{}", { status: 403 }) : f(input)) as typeof fetch;
+  assert.deepEqual((await loadProfile("big", undefined, searchDown)).repos.map((r) => r.name), ["recent"]);
+});
+
+test("GitHub emoji shortcodes don't show up as raw text", () => {
+  assert.equal(emojify(":zap: Fast"), "⚡ Fast");
+  assert.equal(emojify("Hi :not_a_real_code: there"), "Hi there");
+  assert.equal(emojify("10:30:00 stays"), "10:30:00 stays");
 });

@@ -65,10 +65,38 @@ export async function loadProfile(
 ): Promise<{ user: GitHubUser; repos: GitHubRepo[]; avatar: string | null }> {
   if (!isValidLogin(login)) throw new LoadError("That isn't a valid GitHub username.", 400);
   const base = "https://api.github.com";
-  const [user, repos] = await Promise.all([
+  const [user, recent, top] = await Promise.all([
     getJson<GitHubUser>(`${base}/users/${login}`, token, f),
     getJson<GitHubRepo[]>(`${base}/users/${login}/repos?per_page=100&type=owner&sort=pushed`, token, f),
+    topRepos(login, token, f),
   ]);
   const avatar = await loadAvatar(user.avatar_url, f);
-  return { user, repos: Array.isArray(repos) ? repos : [], avatar };
+  return { user, repos: mergeRepos(Array.isArray(recent) ? recent : [], top), avatar };
+}
+
+/**
+ * The repos endpoint can't sort by stars, so for people with over 100 repos the
+ * most-starred ones can fall outside the recent page. One search call fills that in.
+ * Best effort: search has its own tighter rate limit, and the card still works without it.
+ */
+async function topRepos(login: string, token: string | undefined, f: Fetch): Promise<GitHubRepo[]> {
+  try {
+    const q = encodeURIComponent(`user:${login} fork:false`);
+    const res = await f(`https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=30`, {
+      headers: headers(token),
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { items?: unknown };
+    return Array.isArray(body.items) ? (body.items as GitHubRepo[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function mergeRepos(a: GitHubRepo[], b: GitHubRepo[]): GitHubRepo[] {
+  const seen = new Map<string, GitHubRepo>();
+  for (const r of [...a, ...b]) {
+    if (r && typeof r.name === "string" && !seen.has(r.name.toLowerCase())) seen.set(r.name.toLowerCase(), r);
+  }
+  return [...seen.values()];
 }
